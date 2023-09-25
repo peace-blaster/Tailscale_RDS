@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  TailscaleRdsVpc:
+    Type: 'AWS::EC2::VPC'
+    Properties: 
+      CidrBlock: '10.0.0.0/16'
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      
+  TailscaleRdsInternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties: 
+      VpcId: !Ref TailscaleRdsVpc
+      InternetGatewayId: !Ref TailscaleRdsInternetGateway
+
+  TailscaleRdsSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref TailscaleRdsVpc
+      CidrBlock: '10.0.0.0/24'
+      MapPublicIpOnLaunch: 'true'
+      
+  TailscaleRdsVpnBridgeSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'My Security Group'
+      VpcId: !Ref TailscaleRdsVpc
+      
+  TailscaleVpnBridgeEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: 't2.micro'
+      ImageId: 'ami-0abcdefgh123456789' # Replace with the actual AMI ID for your region
+      SubnetId: !Ref TailscaleRdsSubnet
+      SecurityGroupIds:
+        - !Ref TailscaleRdsVpnBridgeSecurityGroup
+        
+  TailscaleRdsSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: 'My DB Subnet Group'
+      SubnetIds:
+        - !Ref TailscaleRdsSubnet
+      
+  TailscaleRdsRDSInstance:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      AllocatedStorage: '20'
+      DBInstanceClass: 'db.t2.micro'
+      Engine: 'mysql'
+      MasterUsername: 'myusername'
+      MasterUserPassword: 'mypassword'
+      VPCSecurityGroups:
+        - !Ref MySecurityGroup
+      DBSubnetGroupName: !Ref TailscaleRdsSubnetGroup
